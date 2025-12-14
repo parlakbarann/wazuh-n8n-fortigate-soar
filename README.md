@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Wazuh-Logo-2022.png/698px-Wazuh-Logo-2022.png" width="500" alt="Wazuh Logo">
+  <img src="logo.svg" alt="New Logo">
 </p>
 
 # 🛡️ Open Source SOAR: Fortigate Threat Intelligence with Wazuh & n8n
