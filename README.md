@@ -37,6 +37,7 @@ Follow these steps to get the SOAR workflow running.
 
     *   **Wazuh Credentials:**
         *   In the **"IMPORTANT FIRST STEP!"** node, replace `YOURWAZUHUSERNAME` and `YOURWAZUHPASSWORD` with your actual Wazuh API credentials.
+	*   Obtain an API key from AbuseIPDB and enter it in the YOUR_ABUSEIPDB_API_KEY section.
         *   In the **"HTTP Request"** node, update the URL `https://YOUR_WAZUH_HOST:9200` to point to your Wazuh server.
 
     *   **AbuseIPDB API Key:**
