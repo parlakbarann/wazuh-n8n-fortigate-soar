@@ -1,6 +1,12 @@
-<p align="center">
-  <img src="logo.svg" alt="New Logo">
-</p>
+<div align="center">
+  <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+    <tr>
+      <td style="padding-right: 10px;"><img src="logo.svg" alt="Wazuh" height="36"></td>
+      <td style="padding: 0 10px; font-size: 24px; vertical-align: middle;">&</td>
+      <td style="padding-left: 10px;"><img src="logo2.svg" alt="n8n" height="24"></td>
+    </tr>
+  </table>
+</div>
 
 # 🛡️ Open Source SOAR: Fortigate Threat Intelligence with Wazuh & n8n
 
