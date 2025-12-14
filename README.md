@@ -32,7 +32,7 @@ Follow these steps to get the SOAR workflow running.
 
 ### Step 1: Import and Configure the n8n Workflow
 
-1.  **Import Workflow:** Import the `My workflow 2.json` file into your n8n instance.
+1.  **Import Workflow:** Import the `workflow.json` file into your n8n instance.
 2.  **Configure Credentials & Variables:** The workflow requires several pieces of information to be configured directly in the n8n nodes.
 
     *   **Wazuh Credentials:**
