@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Wazuh-Logo-2022.png/698px-Wazuh-Logo-2022.png" width="500" alt="Wazuh Logo">
+</p>
+
 # 🛡️ Open Source SOAR: Fortigate Threat Intelligence with Wazuh & n8n
 
 ![Wazuh](https://img.shields.io/badge/Wazuh-4.x-blue?style=for-the-badge&logo=wazuh)
@@ -32,17 +36,16 @@ Follow these steps to get the SOAR workflow running.
 
 ### Step 1: Import and Configure the n8n Workflow
 
-1.  **Import Workflow:** Import the `workflow.json` file into your n8n instance.
+1.  **Import Workflow:** Import the `n8n/workflow.json` file into your n8n instance.
 2.  **Configure Credentials & Variables:** The workflow requires several pieces of information to be configured directly in the n8n nodes.
 
     *   **Wazuh Credentials:**
         *   In the **"IMPORTANT FIRST STEP!"** node, replace `YOURWAZUHUSERNAME` and `YOURWAZUHPASSWORD` with your actual Wazuh API credentials.
-	*   Obtain an API key from AbuseIPDB and enter it in the YOUR_ABUSEIPDB_API_KEY section.
         *   In the **"HTTP Request"** node, update the URL `https://YOUR_WAZUH_HOST:9200` to point to your Wazuh server.
 
     *   **AbuseIPDB API Key:**
-        *   In the **"AbuseIPDB Check"** node, go to the "Header" section to find the API key.
-        > **⚠️ Security Warning:** The workflow includes a pre-filled, static API key. For security and proper functionality, you **must replace** this with your own AbuseIPDB API key. For better security practices, it is highly recommended to store the key as a credential or an environment variable in n8n instead of hardcoding it.
+        *   In the **"AbuseIPDB Check"** node, go to the "Header" section and replace the placeholder API key with your own AbuseIPDB API key.
+        > **⚠️ Security Warning:** The API key is hardcoded in the workflow. For better security, it is highly recommended to store the key as a credential or an environment variable in n8n.
 
     *   **Telegram Configuration:**
         *   In the **"Send a text message"** and **"Send a text message1"** nodes, replace `YOUR_TELEGRAM_CHAT_ID` with the target Telegram chat ID.
