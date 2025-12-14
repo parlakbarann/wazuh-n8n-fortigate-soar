@@ -1,0 +1,6 @@
+# Ignore environment variables file
+.env
+
+# Ignore n8n specific files (if any are generated outside of workflow.json)
+# /n8n/credentials.json
+# /n8n/config.json

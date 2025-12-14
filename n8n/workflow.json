@@ -1,0 +1,516 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_WAZUH_HOST:9200/wazuh-alerts*/_search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Basic {{ $json.stdout }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{ \"query\": { \"term\": { \"rule.id\": 81619 } }, \"size\": 5, \"sort\": [ { \"@timestamp\": { \"order\": \"desc\" } } ] }",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1040,
+        -64
+      ],
+      "id": "8fb786e9-339a-483e-91ce-7a6ad8580779",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\n\nfor (const h of items[0].json.hits.hits) {\n  out.push({\n    json: {\n      srcip: h._source?.data?.srcip || null,\n      dstip: h._source?.data?.dstip || null,\n      srcport: h._source?.data?.srcport || null,\n      dstport: h._source?.data?.dstport || null,\n      full_log: h._source?.full_log || null,\n      id: h._id || null\n    }\n  });\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        -64
+      ],
+      "id": "7624ecee-1f9f-41ed-916c-d68fb146a84f",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1712,
+        80
+      ],
+      "id": "e810988f-7c46-44c6-b4a8-4c54107bdec2",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Özel IP listesi (AbuseIPDB'ye gönderilmeyecek)\nconst specialIps = new Set([\n  \"255.255.255.255\",\n  \"1.1.1.1\",\n  \"1.0.0.1\",\n  \"8.8.8.8\",\n  \"8.8.4.4\"\n]);\n\nfunction isPrivate(ip) {\n  if (!ip) return true;\n\n  // Eğer özel listede varsa -> private gibi kabul et\n  if (specialIps.has(ip)) return true;\n\n  const privateRanges = [\n    /^10\\./,\n    /^192\\.168\\./,\n    /^172\\.(1[6-9]|2[0-9]|3[0-1])\\./,\n    /^127\\./,\n    /^169\\.254\\./,\n    /^0\\./\n  ];\n\n  return privateRanges.some(r => r.test(ip));\n}\n\nconst out = [];\n\nfor (const item of items) {\n\n  const srcip = item.json.srcip;\n  const dstip = item.json.dstip;\n\n  // SRC public ise → çıkış\n  if (srcip && !isPrivate(srcip)) {\n    out.push({\n      json: {\n        ip: srcip,\n        direction: \"src\",\n        id: item.json.id\n      }\n    });\n  }\n\n  // DST public ise → çıkış\n  if (dstip && !isPrivate(dstip)) {\n    out.push({\n      json: {\n        ip: dstip,\n        direction: \"dst\",\n        id: item.json.id\n      }\n    });\n  }\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        80
+      ],
+      "id": "54ec3ca6-1971-4654-ad06-f40565cc87fb",
+      "name": "Code in JavaScript2",
+      "executeOnce": false,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "https://api.abuseipdb.com/api/v2/check",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "ipAddress",
+              "value": "={{ $json.ip }}"
+            },
+            {
+              "name": "maxAgeInDays",
+              "value": "90"
+            },
+            {
+              "name": "verbose"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Key",
+              "value": "YOUR_ABUSEIPDB_API_KEY"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2160,
+        -112
+      ],
+      "id": "72a515dc-7671-441f-8168-e4ccb64e846a",
+      "name": "AbuseIPDB Check",
+      "executeOnce": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "38d8c568-34b4-4378-bef3-9c3276ab77d3",
+              "leftValue": "={{ $json.ip }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        -112
+      ],
+      "id": "2ac77e6b-ef81-4a78-a7f0-9075e02fb844",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1d01d61-eff4-4a3e-be24-8c4f67453708",
+              "name": "id",
+              "value": "=https://YOUR_WAZUH_HOST/app/discover#/doc/wazuh-alerts-*/wazuh-alerts-4.x-2025.11.22?id={{ $('Code in JavaScript1').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "25f136aa-e01a-4748-afeb-e946d8364923",
+              "name": "srcip",
+              "value": "={{ $('Code in JavaScript1').item.json.srcip }}",
+              "type": "string"
+            },
+            {
+              "id": "6ef2a8ea-96f2-4add-8450-a8304c978691",
+              "name": "dstip",
+              "value": "={{ $('Code in JavaScript1').item.json.dstip }}",
+              "type": "string"
+            },
+            {
+              "id": "9fc27026-36c3-4480-8524-8664b594ff24",
+              "name": "srcport",
+              "value": "={{ $('Code in JavaScript1').item.json.srcport }}",
+              "type": "string"
+            },
+            {
+              "id": "3b0264fd-4c65-4c2d-97d0-e733cdd5d5bb",
+              "name": "dstport",
+              "value": "={{ $('Code in JavaScript1').item.json.dstport }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2608,
+        -112
+      ],
+      "id": "9f1763ca-86b9-43b0-ab0e-a864ca0d17df",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b15b412e-a02f-4bfe-b89d-383d7c215f76",
+              "leftValue": "={{ $json.data.abuseConfidenceScore }}",
+              "rightValue": 50,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2384,
+        -112
+      ],
+      "id": "c5d72ac3-59b2-4d7f-9446-06f70bd85471",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        -64
+      ],
+      "id": "2cf768d4-ff1f-4b84-a197-a44f646e495d",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🔔 New Security Event Detected\n\nEvent Summary\n• ID: {{ $json.id }}\n• SRC IP: {{ $json.srcip }}\n• DST IP: {{ $json.dstip }}\n• SRC Port: {{ $json.srcport }}\n• DST Port: {{ $json.dstport }}\n\nNetwork Intelligence\n• IP Address: {{ $json.data.ipAddress }}\n• Country: {{ $json.data.countryName }}\n• Usage Type: {{ $json.data.usageType }}\n• ISP: {{ $json.data.isp }}\n• Domain: {{ $json.data.domain }}\n\nAbuseIPDB Intelligence\n• Abuse Score: %{{ $json.data.abuseConfidenceScore }}\n• Total Reports: {{ $json.data.totalReports }}\n• Distinct Users: {{ $json.data.numDistinctUsers }}\n• Hostnames: {{ $json.data.hostnames }}\n\nRecommendation\nYou can correlate the network activity associated with this IP and apply temporary firewall mitigation if necessary.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2832,
+        -112
+      ],
+      "id": "474b13aa-eb17-4d51-94b6-b8e5263891a9",
+      "name": "Send a text message",
+      "webhookId": "18e898ce-0e3a-44e9-a7b2-582a4dc79735",
+      "credentials": {
+        "telegramApi": {
+          "id": "aIy5YSVywzw98ECR",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a1f08357-fbc6-406c-a17d-78ab4d5877a2",
+              "leftValue": "={{ $json.full_log }}",
+              "rightValue": "nmap",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        -64
+      ],
+      "id": "93d8c36c-5e4d-4fd8-b750-cbf920518f60",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🔔 New Security Event Detected\n\nEvent Summary\n• ID: {{ $json.id }}\n• SRC IP: {{ $json.srcip }}\n• DST IP: {{ $json.dstip }}\n• SRC Port: {{ $json.srcport }}\n• DST Port: {{ $json.dstport }}\n• Full Log: {{ $json.full_log }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1712,
+        -112
+      ],
+      "id": "2466d28b-2387-4683-b7bf-28d9ceb49e78",
+      "name": "Send a text message1",
+      "webhookId": "18e898ce-0e3a-44e9-a7b2-582a4dc79735",
+      "credentials": {
+        "telegramApi": {
+          "id": "aIy5YSVywzw98ECR",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "echo -n \"YOURWAZUHUSERNAME:YOURWAZUHPASSWORD\" | base64"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        816,
+        -64
+      ],
+      "id": "40492d09-df4e-4550-b0ff-a7f95b497ab5",
+      "name": "IMPORTANT FIRST STEP!"
+    },
+    {
+      "parameters": {
+        "content": "⚠️ IMPORTANT STEP!\n\nBefore running this node, replace the values in the ‘command’ field, YOURWAZUHUSERNAME and YOURWAZUHPASSWORD, with your own Wazuh username and password.\n\nWhen the node runs, this information will be encoded in base64 format and used for authentication in the HTTP Request node.\n\nFill in the Telegram YOUR_TELEGRAM_CHAT_ID, YOUR_ABUSEIPDB_API_KEY and credential sections.",
+        "height": 192,
+        "width": 752
+      },
+      "id": "2f5d1aee-366b-4302-8ca9-087c082639f0",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        576,
+        -336
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AbuseIPDB Check": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AbuseIPDB Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "IMPORTANT FIRST STEP!",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMPORTANT FIRST STEP!": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "97882f9c-76f4-45f9-afb0-d0c03f239b52",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2edfbeb8a79cd12eeca5a0419beba88ca93d0b81131740b50cdd25c6d9aa984e"
+  },
+  "id": "KjDTylzi29IQ129B",
+  "tags": []
+}
